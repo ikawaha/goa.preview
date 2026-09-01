@@ -12,7 +12,7 @@ found, a suggested fix.
 |:--|:--|:--|
 | [01](01-required-array-panic/) | Panic when a result type has a required array of a user type | Cause found, one-line fix verified |
 | [02](02-collection-name-collision/) | `CollectionOf` called twice in one service collides on the generated name | Cause found, one-line fix verified |
-| [03](03-multiple-success-responses/) | A method with two success responses misses its response transform | Reproduced, not fixed |
+| [03](03-multiple-success-responses/) | Two untagged success responses: a planned conversion is never rendered | Cause found, not fixed |
 
 All three generate successfully with every released version tested (v3.27.0, v3.28.0, v3.29.2,
 v3.30.0) and fail with both previews, so all three are regressions introduced on the preview branch.

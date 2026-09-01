@@ -4,13 +4,13 @@ import . "goa.design/goa/v3/dsl"
 
 var RT = ResultType("application/vnd.repro+json", func() {
 	Attributes(func() {
-		Attribute("id", Int)
-		Required("id")
+		Attribute("name", String)
+		Required("name")
 	})
 })
 
 var _ = Service("svc", func() {
-	Method("update", func() {
+	Method("m", func() {
 		Result(RT)
 		HTTP(func() {
 			POST("/")

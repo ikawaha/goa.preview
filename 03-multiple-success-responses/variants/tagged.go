@@ -11,7 +11,7 @@ var RT = ResultType("application/vnd.repro+json", func() {
 })
 
 var _ = Service("svc", func() {
-	Method("update", func() {
+	Method("m", func() {
 		Result(RT)
 		HTTP(func() {
 			POST("/")

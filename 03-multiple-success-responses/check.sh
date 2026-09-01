@@ -19,8 +19,9 @@ run() {
     echo "  [FAILED] $2: $(echo "$out" | grep -vE '^exit status' | head -1)"
   fi
 }
-run untagged       "two success responses, no Tag"
-run named_body     "two success responses, Tag + Body(attribute)"
-run tagged_no_body "two success responses, Tag, no Body"
-run single_response "single success response"
+run untagged            "two untagged success responses, result type"
+run untagged_plain_type "two untagged success responses, plain type"
+run tagged              "two success responses selected by Tag"
+run single_response     "single success response"
+
 printf '%s' "$backup" > design/design.go

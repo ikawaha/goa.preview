@@ -1,65 +1,83 @@
-# Missing response transform: a method with more than one success response
+# Two untagged success responses: a planned conversion is never rendered
 
 ## Symptom
 
-A method whose HTTP mapping declares two non-error responses fails generation. Two shapes were
-observed; both come from a missing entry in the planned response transforms.
-
-**Shape A: two success responses, no `Tag`** (`variants/untagged.go`):
+A method whose HTTP mapping declares two success responses without `Tag` stops generation:
 
 ```
-HTTP marshal conversion for update server response 202   default was planned but not rendered
+HTTP marshal conversion for m server response 202   default was planned but not rendered
 ```
 
-**Shape B: two success responses with `Tag` and a named `Body`** (`variants/named_body.go`):
-
-```
-panic: runtime error: invalid memory address or nil pointer dereference
-	goa.design/goa/v3/http/codegen.(*ServicesData).buildResponseResultInit  http/codegen/service_data.go:3216
-	goa.design/goa/v3/http/codegen.(*ServicesData).buildResponses           http/codegen/service_data.go:3044
-	goa.design/goa/v3/http/codegen.(*ServicesData).buildResultData          http/codegen/service_data.go:2894
-	goa.design/goa/v3/http/codegen.(*ServicesData).analyze                  http/codegen/service_data.go:1263
-```
+The result type does not matter: the same design with a plain `Type` fails the same way, so this is
+not about views.
 
 ## Steps to reproduce
 
 ```sh
-go run goa.design/goa/v3/cmd/goa gen repro/design -o .   # shape A
-./check.sh v3.31.0-preview.3                             # both shapes
+go run goa.design/goa/v3/cmd/goa gen repro/design -o .
+./check.sh v3.31.0-preview.3   # condition matrix
+./check.sh v3.30.0             # control
 ```
+
+| Goa | Result |
+|:--|:--|
+| v3.31.0-preview.1 | failed |
+| v3.31.0-preview.3 | failed |
+| v3.30.0, v3.29.2, v3.28.0, v3.27.0 | generates successfully |
+
+## Condition matrix
 
 | Design | preview.1 / preview.3 | v3.27.0 - v3.30.0 |
 |:--|:--|:--|
-| two success responses, no `Tag` | **failed** | OK |
-| two success responses, `Tag` + `Body(attribute)` | **panic** | OK |
-| two success responses, `Tag`, no `Body` | OK | OK |
+| two untagged success responses, result type | **failed** | OK |
+| two untagged success responses, plain type | **failed** | OK |
+| two success responses selected by `Tag` | OK | OK |
 | single success response | OK | OK |
 
-## Diagnosis
+## Cause
 
-`http/codegen/service_data.go:3215-3216`:
+Goa handles only the first untagged response. `http/codegen/plan.go:1798` skips the rest when it
+declares the client result constructors:
 
 ```go
-transforms := sd.transforms.responses[viewedConstructorKey{endpoint: e, response: resp, view: bodyType.View}]
-converted, helpers, err := sd.clientWireTypes.renderTransform(transforms.clientDecode, clientBody, "body", "v", transformctx, svcctx)
+noTagSeen := false
+for _, response := range endpoint.Responses {
+	if response.Tag[0] == "" {
+		if noTagSeen {
+			continue
+		}
+		noTagSeen = true
+	}
+	...
+}
 ```
 
-`responses` is `map[viewedConstructorKey]*plannedResponseTransforms` (`http/codegen/plan.go:718`),
-so a missing key yields a nil pointer that is dereferenced on the next line. That is shape B.
-Shape A is the same missing planning surfacing on the server side, where the unrendered conversion
-is detected and reported instead.
+The loop that collects the wire conversions, `http/codegen/service_data.go:1610`, has no such skip:
 
-Adding a nil guard and printing the key shows which combinations were never planned. On a real
-service this reported both responses of the same method:
-
-```
-service=service-a  method=method-a  status=200  view="default"  tag=[]
-service=service-a  method=method-a  status=202  view="default"  tag=[outcome Accepted]
-service=service-b  method=method-b  status=200  view="default"  tag=[]
-service=service-b  method=method-b  status=202  view="default"  tag=[outcome Accepted]
+```go
+for _, response := range endpoint.Responses {
+	body := bodies.response(response)
+	...
+}
 ```
 
-Both of those methods declare a named `Body` on each response, matching shape B.
+So a server conversion is planned for the second untagged response, nothing ever renders it, and
+generation reports the unrendered conversion. Instrumenting both sides shows the asymmetry:
 
-A nil check alone would only hide the problem: the planning step needs to register a transform for
-every (endpoint, response, view) combination the generator later renders.
+```
+[COLLECT] method=m status=200 tag=[] view="default"
+[COLLECT] method=m status=202 tag=[] view="default"   <- planned
+[LOOKUP ] method=m status=200 tag=[] view="default" found=true
+                                                      <- 202 is never looked up
+HTTP marshal conversion for m server response 202   default was planned but not rendered
+```
+
+The keys match on both sides; the problem is that a conversion is planned for a response the
+generator does not render.
+
+## Note
+
+A second, independent failure was originally reported together with this one: a response with an
+explicit `Body(attribute)` and a result type panics with a nil pointer dereference. That one needs
+only a single response and has a different cause (the collecting side registers an empty view for an
+explicit body while the lookup uses the body view), so it is tracked separately.
