@@ -12,10 +12,11 @@ found, a suggested fix.
 |:--|:--|:--|
 | [01](01-required-array-panic/) | Panic when a result type has a required array of a user type | Cause found, one-line fix verified |
 | [02](02-collection-name-collision/) | `CollectionOf` called twice in one service collides on the generated name | Cause found, one-line fix verified |
-| [03](03-multiple-success-responses/) | Two untagged success responses: a planned conversion is never rendered | Cause found, not fixed |
+| [03](03-multiple-success-responses/) | Two untagged success responses: a planned conversion is never rendered | Cause found, one-line fix verified |
+| [04](04-explicit-response-body/) | A response body set to one result attribute panics | Cause found, fix verified |
 
-All three generate successfully with every released version tested (v3.27.0, v3.28.0, v3.29.2,
-v3.30.0) and fail with both previews, so all three are regressions introduced on the preview branch.
+All four generate successfully with every released version tested (v3.27.0, v3.28.0, v3.29.2,
+v3.30.0) and fail with both previews, so all four are regressions introduced on the preview branch.
 
 ## Running
 
@@ -32,11 +33,11 @@ go run goa.design/goa/v3/cmd/goa gen repro/design -o .   # the primary reproduct
 
 ## Environment
 
-- Goa: `v3.31.0-preview.1` and `v3.31.0-preview.3` (all three failures occur on both)
+- Goa: `v3.31.0-preview.1` and `v3.31.0-preview.3` (all four failures occur on both)
 - Released versions checked: `v3.30.0`, `v3.29.2`, `v3.28.0`, `v3.27.0`
 - Go: 1.25.0 and 1.27.0, darwin/arm64 (both reproduce)
 - Transport: HTTP only, so `protoc` versions do not apply
 - Plugins: none, every reproduction here uses plain Goa
 - Each reproduction runs a complete `goa gen`, so client and server are regenerated together
 
-None of the three findings is described in the preview's `UPGRADING.md`.
+None of the four findings is described in the preview's `UPGRADING.md` or in `codegen/ARCHITECTURE.md`.
