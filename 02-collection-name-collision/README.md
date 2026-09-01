@@ -85,6 +85,14 @@ distinct expressions are not merged and the second `DeclareName` collides.
 This code is identical in v3.30, where the duplicate was absorbed later during generation. The
 v3.31 planner assigns names up front and reports the collision instead.
 
+This also does not match the documented behavior for collisions. `codegen/ARCHITECTURE.md` states
+that "real name collisions receive stable numeric suffixes instead of suffixes determined by
+discovery order", and describes failing generation only for unions: "Goa never adds a numeric suffix
+to resolve a collision. Separately authored unions that ask for the same family name now fail
+generation". This design has no union and declares no duplicate; the duplicate is created inside
+`CollectionOf`.
+
+
 ## Suggested fix (one line)
 
 Compare canonical identifiers on both sides. There are two callers: `dsl/result_type.go` passes a

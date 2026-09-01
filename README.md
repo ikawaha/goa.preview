@@ -40,21 +40,3 @@ go run goa.design/goa/v3/cmd/goa gen repro/design -o .   # the primary reproduct
 - Each reproduction runs a complete `goa gen`, so client and server are regenerated together
 
 None of the three findings is described in the preview's `UPGRADING.md`.
-
-## Separate migration note: the `Randomizer` DSL
-
-Not a bug, but an API change that is not mentioned in `UPGRADING.md`. `Randomizer` now takes a
-factory:
-
-```diff
-- Randomizer(expr.NewDeterministicRandomizer())
-+ Randomizer(expr.NewDeterministicRandomizerFactory())
-```
-
-Without this the design package no longer compiles:
-
-```
-cannot use expr.NewDeterministicRandomizer() (value of interface type expr.Randomizer) as
-expr.RandomizerFactory value in argument to Randomizer: expr.Randomizer does not implement
-expr.RandomizerFactory (missing method NewRandomizer)
-```
