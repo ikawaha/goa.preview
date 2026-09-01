@@ -120,6 +120,9 @@ Verified with this change:
 
 ## Workaround without patching Goa
 
+This is only a way for testers to keep moving on the preview. Calling `CollectionOf` twice is valid
+and generates correctly on every released version, so the design itself does not need to change.
+
 Call `CollectionOf` once and share the value:
 
 ```go
